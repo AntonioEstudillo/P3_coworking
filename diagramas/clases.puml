@@ -1,0 +1,156 @@
+@startuml clases
+skinparam classAttributeIconSize 0
+skinparam dpi 150
+skinparam shadowing false
+skinparam class {
+  BackgroundColor #FDFDFD
+  BorderColor #2F4F6F
+  ArrowColor #2F4F6F
+}
+hide empty members
+title Espacio de coworking — diagrama de clases (esqueleto: INCOMPLETO, debes actualizarlo)
+
+package modelo {
+  abstract class Tarifable <<ABC>> {
+    {static} MONEDA : str
+    {static} IVA : float
+    + cotizar(dias:int) : float
+    + cotizar_con_iva(dias:int) : float
+    # {abstract} _calcular(dias:int) : float
+    {static} + redondear(v:float) : float
+    {classifier} + moneda() : str
+  }
+  class Clave {
+    {static} - _contadores : dict
+    {static} - _candado : Lock
+    {static} + es_valida(t:str) : bool
+    {classifier} + siguiente(prefijo:str) : str
+    {classifier} + registrar(clave:str)
+  }
+  abstract class Espacio {
+    - __clave : str
+    # _nombre : str
+    # _precio_base : float
+    + tipo : str <<property>>
+    + {abstract} factor() : float
+    + {abstract} valor_atributo() : int
+    + recargo() : float
+    + copiar() : Espacio
+    {static} + crear(prefijo, nombre, precio, valor, clave) : Espacio
+  }
+  class Capacidad {
+    + recargo() : float
+    + etiquetas() : list[str]
+  }
+  class Equipado {
+    {static} RECARGO : float = ?
+  }
+  class Privado {
+    {static} RECARGO : float = ?
+  }
+  class Escritorio <<ESC>> {
+    # _monitores : int  (0..3)
+    {static} ESCALA : int = ?
+    + factor() : float
+  }
+  class SalaJuntas <<SAL>> {
+    # _capacidad : int  (4..30)
+    {static} ESCALA : int = ?
+    + factor() : float
+  }
+  class Cabina <<CAB>> {
+    # _aislamiento_db : int  (20..60)
+    {static} ESCALA : int = ?
+    + factor() : float
+    + recargo() : float  ' colisión
+  }
+
+  abstract class Nivel <<Singleton>> {
+    {static} - _instancia : Nivel
+    + __new__(cls) : Nivel
+    + {abstract} descuento() : float
+    {static} + desde_nombre(n:str) : Nivel
+  }
+  class Basico
+  class Plata
+  class Oro
+  class Socio <<SOC>> {
+    - __clave : str
+    # _nombre, _correo
+    {classifier} + desde_texto(t:str) : Socio
+    + descuento() : float
+  }
+  class Reservacion <<RES>> {
+    {static} TRANSICIONES : dict
+    - __estado : str
+    - __lineas : list[Linea]
+    # _candado : Lock
+    + alertada : bool
+    + agregar(espacio, dias) : Linea
+    + cambiar_estado(nuevo:str)
+    + subtotal() / descuento() / total()
+    + __getstate__() / __setstate__()
+  }
+  class "Reservacion.Linea" as Linea {
+    - __contenedora : Reservacion
+    - __espacio : Espacio
+    - __dias : int
+    + importe() : float
+  }
+  class DirectorioEspacios {
+    - __espacios : dict[str, Espacio]
+    + agregar(*espacios) : int
+    + buscar(**criterios) : list
+    + ordenados(por, descendente) : list
+    + resumen_por_tipo() : dict
+  }
+}
+package funcional {
+  class Regla {
+    + __call__(espacio) : bool
+    + y(o) / o(o) / negar() : Regla
+  }
+}
+package concurrencia {
+  abstract class TareaPeriodica {
+    - _alto : Event
+    + run() / detener()
+    + {abstract} ejecutar()
+  }
+}
+package servicio {
+  class ServicioCoworking <<fachada>> {
+    {static} PLAZO = 1
+    + __enter__() / __exit__()
+    + revisar() : tuple[int,int]
+    + conteo_por_estado() / ingresos_por_tipo() / top_espacios()
+  }
+  class "ServicioCoworking.Monitor" as Monitor
+}
+package eventos {
+  abstract class Oyente {
+    + {abstract} notificar(e, d)
+  }
+}
+
+Tarifable <|-- Espacio
+Capacidad <|-- Equipado
+Capacidad <|-- Privado
+Espacio <|-- Escritorio
+Espacio <|-- SalaJuntas
+Espacio <|-- Cabina
+Nivel <|-- Basico
+Nivel <|-- Plata
+Nivel <|-- Oro
+Socio --> "1" Nivel
+Reservacion --> "1" Socio
+Linea --> "1" Espacio
+DirectorioEspacios o-- "0..*" Espacio
+Espacio ..> Clave
+TareaPeriodica <|-- Monitor
+Monitor --> ServicioCoworking : servicio
+ServicioCoworking --> DirectorioEspacios
+ServicioCoworking --> "0..*" Oyente
+Regla ..> Espacio
+note "Faltan: capacidades de cada subtipo,\nrelación transacción–línea y anidamiento\ndel monitor. Complétalos en tu entrega." as N1
+@enduml
