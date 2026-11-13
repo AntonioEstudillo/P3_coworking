@@ -11,4 +11,8 @@ PROYECTO = "Espacio de coworking"
 def info() -> dict[str, str]:
     """Metadatos del proyecto mostrados por la UI y el README."""
     # TODO E01: implementar `info`
-    raise NotImplementedError
+    return {
+        "PROYECTO": PROYECTO,
+        "version": "1.0",
+        "descripcion": "Sistema de gestión de espacios de Coworking",
+    }

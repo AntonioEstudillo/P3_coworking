@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: coworking
+Version: 0.1.0
+Summary: Miniproyecto: Espacio de coworking (Tecnologías de Programación, TecNM-ITO)
+Author: Tu nombre
+Requires-Python: >=3.13
+Provides-Extra: web
+Requires-Dist: nicegui>=2.0; extra == "web"
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: mypy>=1.11; extra == "dev"
+Requires-Dist: ruff>=0.6; extra == "dev"
