@@ -12,6 +12,8 @@ from typing import ClassVar
 from .clave import Clave
 from .contrato import Tarifable
 
+import math
+
 
 class Espacio(Tarifable):
     """Abstracción central: espacio de trabajo reservable."""
@@ -19,37 +21,131 @@ class Espacio(Tarifable):
     PREFIJO: ClassVar[str] = ""
 
     def __init__(self, nombre: str, precio_base: float, clave: str | None = None) -> None:
-        """Inicializa nombre, precio base y clave (se genera si es ``None``)."""
+        """Inicializa nombre, precio base y clave (se genera si es ``None``).
+        Asigna el nombre y el precio base mediante sus
+        propiedades para aplicar las validaciones.
+        Genera una clave si no se proporciona una o
+        registra la clave existente si es válida.
+
+        Args:
+            nombre (str): Nombre descriptivo del espacio.
+            precio_base (float): Precio diario del espacio.
+                Debe ser mayor que cero.
+            clave (str | None): Identificador opcional.
+                Si es None, se genera automáticamente.
+
+        Raises:
+            ValueError: Si el nombre, precio o clave son
+                inválidos, o si la clave no corresponde
+                al prefijo del subtipo.
+            """
         # TODO E04: implementar `Espacio.__init__`
-        raise NotImplementedError
+        super().__init__()
+        self.nombre = nombre
+        self.precio_base = precio_base
+
+        if clave is None:
+            self.__clave = Clave.siguiente(self.PREFIJO)
+        else:
+            if not Clave.es_valida(clave) or not clave.startswith(f"{self.PREFIJO}-"):
+                raise ValueError("Clave invalida para el tipo de espacio")
+            Clave.registrar(clave)
+            self.__clave = clave
+
+
 
     @property
     def clave(self) -> str:
-        """Identidad inmutable (solo lectura)."""
+        """Identidad inmutable (solo lectura).
+
+        Obtiene el identificador único del espacio.
+
+        Permite consultar el atributo privado __clave
+        mediante una propiedad de solo lectura,
+        evitando su modificación mediante asignación
+        directa a la propiedad.
+
+        Returns:
+            str: Identificador único del espacio.
+
+        """
         # TODO E04: implementar `Espacio.clave`
-        raise NotImplementedError
+        return self.__clave
 
     @property
     def nombre(self) -> str:
-        """Nombre descriptivo, no vacío."""
+        """Nombre descriptivo, no vacío.
+        Permite consultar el atributo protegido _nombre,
+        cuyo valor es validado y almacenado mediante
+        el setter correspondiente.
+
+        Returns:
+            str: Nombre descriptivo del espacio.
+        """
         # TODO E04: implementar `Espacio.nombre`
-        raise NotImplementedError
+        return self._nombre
 
     @nombre.setter
     def nombre(self, valor: str) -> None:
+        """
+        Establece el nombre descriptivo del espacio.
+
+        Elimina los espacios al inicio y al final del nombre
+        y verifica que el resultado no esté vacío antes
+        de almacenarlo en el atributo protegido _nombre.
+
+        Args:
+            valor (str): Nombre que se asignará al espacio.
+
+        Raises:
+            ValueError: Si el nombre está vacío o contiene
+                únicamente espacios en blanco.
+        """
         # TODO E04: implementar `Espacio.nombre`
-        raise NotImplementedError
+        nombre_limpio = valor.strip()
+        if not nombre_limpio:
+            raise ValueError("El nombre no puede ser Vacio")
+
+        self._nombre = nombre_limpio
 
     @property
     def precio_base(self) -> float:
-        """Precio base por día, estrictamente positivo."""
+        """Precio base por día, estrictamente positivo.
+
+        Obtiene el precio base diario del espacio.
+
+        Permite consultar el atributo protegido _precio_base,
+        cuyo valor es validado y almacenado mediante
+        el setter correspondiente.
+
+        Returns:
+            float: Precio base diario del espacio.
+        """
         # TODO E04: implementar `Espacio.precio_base`
-        raise NotImplementedError
+        return self._precio_base
 
     @precio_base.setter
     def precio_base(self, valor: float) -> None:
+        """
+        Establece el precio base diario del espacio.
+
+        Valida que el valor recibido sea estrictamente
+        positivo y finito antes de almacenarlo en el
+        atributo protegido _precio_base.
+
+        Args:
+            valor (float): Precio diario que se asignará
+                al espacio.
+
+        Raises:
+            ValueError: Si el precio es menor o igual
+                que cero, infinito o NaN.
+        """
         # TODO E04: implementar `Espacio.precio_base`
-        raise NotImplementedError
+        if not math.isfinite(valor) or valor <= 0:
+            raise ValueError("Precio debe ser positivo y finito")
+
+        self._precio_base = float(valor)
 
     @property
     def tipo(self) -> str:
@@ -69,9 +165,27 @@ class Espacio(Tarifable):
         """Valor del atributo distintivo del subtipo (para persistencia)."""
 
     def _calcular(self, dias: int) -> float:
-        """Tarifa del subtipo por ``dias`` (fórmula: §6 del DOCX, por deducir)."""
+        """Tarifa del subtipo por ``dias`` (fórmula: §6 del DOCX, por deducir).
+        Calcula la tarifa de un espacio según sus características.
+
+        Multiplica el precio base por el número de días y
+        el factor correspondiente al subtipo. Posteriormente,
+        aplica el recargo de sus capacidades y redondea
+        el resultado a dos decimales.
+
+        Args:
+            dias (int): Número de días de la reservación,
+                previamente validado por cotizar().
+
+        Returns:
+            float: Tarifa total del espacio sin IVA,
+                redondeada a dos decimales.
+
+        """
         # TODO E04: implementar `Espacio._calcular`
-        raise NotImplementedError
+        subtotal = self.precio_base * dias
+        total = subtotal * self.factor() * (1 + self.recargo())
+        return self.redondear(total)
 
     def copiar(self) -> "Espacio":
         """Crea un objeto equivalente con clave NUEVA (identidad distinta)."""
