@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Miniproyecto: Espacio de coworking (Tecnologías de Programación, TecNM-ITO)"
 requires-python = ">=3.13"
 # TODO E01: escribe tu nombre y correo institucional
-authors = [{ name = "Antonio de Jesús Esudillo Silva," email = "m26011886@orizaba.tecnm.mx" }]
+authors = [{ name = "Antonio de Jesús Esudillo Silva", email = "m26011886@orizaba.tecnm.mx" }]
 dependencies = []
 
 [project.optional-dependencies]
