@@ -269,16 +269,45 @@ class DirectorioEspacios:
         )
 
     def resumen_por_tipo(self) -> dict[str, int]:
+        """
+        Cuenta los espacios registrados según su tipo.
+
+        Utiliza una clase local llamada Acumulador para
+        contabilizar los espacios del directorio mediante
+        su identificador de tipo.
+
+        Returns:
+            dict[str, int]: Diccionario que relaciona cada
+                tipo de espacio con la cantidad registrada.
+                Si no existen espacios, devuelve un
+                diccionario vacío.
+        """
+
         """Cuenta espacios por tipo usando una CLASE LOCAL como acumulador."""
 
         class Acumulador:
             """Clase local: sólo existe dentro de este método."""
 
             def __init__(self) -> None:
+                """
+                Inicializa el acumulador con un diccionario vacío.
+                """
                 self.cuentas: dict[str, int] = {}
 
             def sumar(self, tipo: str) -> None:
+                """
+                Incrementa el contador de un tipo de espacio.
+
+                Args:
+                    tipo (str): Identificador del tipo
+                        de espacio que se contabilizará.
+                """
                 self.cuentas[tipo] = self.cuentas.get(tipo, 0) + 1
 
         # TODO E10: implementar `DirectorioEspacios.resumen_por_tipo`
-        raise NotImplementedError
+        acumulador = Acumulador()
+
+        for espacio in self.todos():
+            acumulador.sumar(espacio.tipo)
+
+        return acumulador.cuentas
