@@ -126,9 +126,22 @@ class Reservacion:
             return self._dias
 
         def importe(self) -> float:
+            """
+            Calcula el importe de la línea de reservación.
+
+            Delega el cálculo al método cotizar() del espacio
+            asociado, utilizando la cantidad de días reservados.
+
+            La cotización se realiza polimórficamente según
+            el tipo concreto del espacio.
+
+            Returns:
+                float: Importe correspondiente al espacio
+                    durante los días reservados.
+            """
             """Importe de la línea = cotización polimórfica del espacio."""
             # TODO E08: implementar `Reservacion.Linea.importe`
-            raise NotImplementedError
+            return self.espacio.cotizar(self.dias)
 
     def __init__(
         self,
@@ -398,19 +411,63 @@ class Reservacion:
         return (hoy - self.fecha).days
 
     def subtotal(self) -> float:
+        """
+        Calcula el subtotal de la reservación.
+
+        Suma los importes de todas las líneas asociadas
+        a la reservación utilizando el método importe()
+        de cada una.
+
+        El resultado se redondea a dos decimales.
+        Si la reservación no contiene líneas, devuelve
+        cero.
+
+        Returns:
+            float: Subtotal de la reservación, antes
+                de aplicar descuentos.
+        """
         """Suma de importes de las líneas."""
         # TODO E08: implementar `Reservacion.subtotal`
-        raise NotImplementedError
+        return round(sum((linea.importe() for linea in self._lineas), 0.0),2)
 
     def descuento(self) -> float:
+        """
+        Calcula el monto de descuento de la reservación.
+
+        Obtiene el subtotal y aplica la fracción de
+        descuento correspondiente al nivel del socio.
+
+        Delega la obtención del porcentaje al método
+        descuento() de Socio, que utiliza polimorfismo
+        según su nivel de membresía.
+
+        El resultado se redondea a dos decimales.
+
+        Returns:
+            float: Monto monetario que debe descontarse
+                del subtotal de la reservación.
+        """
         """Monto de descuento según el nivel del socio."""
         # TODO E08: implementar `Reservacion.descuento`
-        raise NotImplementedError
+        return round(self.subtotal() * self.socio.descuento(),2)
 
     def total(self) -> float:
+        """
+        Calcula el importe final de la reservación.
+
+        Obtiene el subtotal de los espacios reservados
+        y resta el monto de descuento correspondiente
+        al nivel de membresía del socio.
+
+        El resultado se redondea a dos decimales.
+
+        Returns:
+            float: Importe final de la reservación,
+                después de aplicar el descuento.
+        """
         """Total = subtotal - descuento."""
         # TODO E08: implementar `Reservacion.total`
-        raise NotImplementedError
+        return round(self.subtotal() - self.descuento(),2)
 
     def __getstate__(self) -> dict[str, object]:
         """Excluye el candado (no serializable), equivalente a ``transient``."""
