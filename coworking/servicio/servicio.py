@@ -36,12 +36,44 @@ class ServicioCoworking:
         """Hilo vigilante: clase anidada con referencia explícita a su servicio."""
 
         def __init__(self, servicio: "ServicioCoworking", periodo: float) -> None:
+            """
+            Inicializa el monitor periódico del servicio.
+
+            Configura el hilo mediante el constructor de
+            TareaPeriodica, almacena una referencia al
+            servicio supervisado e inicializa el contador
+            de ejecuciones.
+
+            Args:
+                servicio (ServicioCoworking): Instancia del
+                    servicio cuyas reservaciones supervisará
+                    el monitor.
+                periodo (float): Intervalo en segundos entre
+                    las ejecuciones periódicas del monitor.
+            """
             # TODO E12: implementar `ServicioCoworking.Monitor.__init__`
-            raise NotImplementedError
+            super().__init__(periodo=periodo, nombre= "Monitor")
+
+            self._servicio = servicio
+            self.ejecuciones = 0
 
         def ejecutar(self) -> None:
+            """
+            Ejecuta una revisión periódica del servicio.
+
+            Invoca el método revisar() de la instancia de
+            ServicioCoworking asociada al monitor y aumenta
+            el contador de ejecuciones realizadas.
+
+            Este método es invocado por el ciclo definido
+            en TareaPeriodica.run().
+
+            Returns:
+                None: No devuelve ningún valor.
+            """
             # TODO E12: implementar `ServicioCoworking.Monitor.ejecutar`
-            raise NotImplementedError
+            self._servicio.revisar()
+            self.ejecuciones += 1
 
     def __init__(
         self,
@@ -116,6 +148,24 @@ class ServicioCoworking:
 
     # ---------------------------------------------------------------- monitor
     def revisar(self) -> tuple[int, int]:
+        """
+        Revisa las reservaciones y aplica las reglas del monitor.
+
+        Cancela las reservaciones abiertas que no tienen
+        líneas y poseen al menos un día de antigüedad.
+
+        También detecta reservaciones en curso que superan
+        el plazo permitido y emite una alerta única,
+        persistiendo el indicador alertada.
+
+        Protege las operaciones sobre las reservaciones
+        mediante un candado y emite los eventos después
+        de liberar la sección crítica.
+
+        Returns:
+            tuple[int, int]: Cantidad de reservaciones
+                canceladas y cantidad de alertas emitidas.
+        """
         """Reglas del monitor; devuelve (canceladas, alertas emitidas).
 
         1. ABIERTA sin líneas con antigüedad >= 1 día → CANCELADA.
@@ -123,15 +173,110 @@ class ServicioCoworking:
            (el indicador ``alertada`` se persiste).
         """
         # TODO E12: implementar `ServicioCoworking.revisar`
-        raise NotImplementedError
+        hoy = self._reloj()
+
+        canceladas = 0
+        alertas = 0
+        eventos: list[tuple[[str, str]]] = []
+
+        with self._candado:
+            repositorio = RepositorioReservacion(
+                self._con,
+                RepositorioEspacio(self._con),
+                RepositorioSocio(self._con)
+            )
+
+            for reservacion in repositorio.todos():
+                dias = reservacion.antiguedad(hoy)
+
+                if (
+                    reservacion.estado == Reservacion.ABIERTA
+                    and not reservacion.lineas
+                    and dias >= 1
+                ):
+                    reservacion.cambiar_estado(Reservacion.CANCELADA)
+
+                    repositorio.guardar(reservacion)
+
+                    canceladas += 1
+
+                    eventos.append(("CANCELACION", reservacion.clave))
+
+                elif(
+                    reservacion.estado == Reservacion.EN_CURSO
+                    and dias > self.PLAZO
+                    and not reservacion.alertada
+                ):
+                    reservacion.alertada = True
+
+                    repositorio.guardar(reservacion)
+
+                    alertas += 1
+                    eventos.append(("ALERTA", reservacion.clave))
+
+        for tipo, detalle in eventos:
+            self._emitir(tipo, detalle)
+
+        return canceladas, alertas
+
 
     def iniciar_monitor(self, periodo: float = 60.0) -> None:
+        """
+        Crea e inicia el monitor periódico del servicio.
+
+        Comprueba si ya existe un monitor activo para
+        evitar iniciar múltiples hilos simultáneamente.
+
+        Si no existe un monitor activo, crea una nueva
+        instancia de la clase anidada Monitor, la asocia
+        al servicio e inicia su ejecución mediante start().
+
+        La operación se protege mediante el candado
+        del servicio.
+
+        Args:
+            periodo (float): Intervalo en segundos entre
+                las ejecuciones del monitor.
+                Por defecto es 60.0.
+
+        Returns:
+            None: No devuelve ningún valor.
+        """
         # TODO E12: implementar `ServicioCoworking.iniciar_monitor`
-        raise NotImplementedError
+        with self._candado:
+            if self._monitor is not None and self._monitor.is_alive():
+                return
+
+            self._monitor = self.Monitor(self, periodo)
+            self._monitor.start()
 
     def detener_monitor(self) -> None:
+        """
+        Solicita la detención del monitor periódico.
+
+        Obtiene una referencia al monitor asociado al
+        servicio mientras protege el acceso mediante
+        el candado.
+
+        Posteriormente, solicita su detención
+        cooperativa fuera de la sección crítica,
+        evitando mantener el candado adquirido
+        mientras se espera la finalización del hilo.
+
+        Si no existe un monitor, no realiza ninguna
+        operación.
+
+        Returns:
+            None: No devuelve ningún valor.
+        """
         # TODO E12: implementar `ServicioCoworking.detener_monitor`
-        raise NotImplementedError
+
+        with self._candado:
+            monitor = self._monitor
+
+        if monitor is not None:
+            monitor.detener()
+
 
     @property
     def monitor(self) -> "ServicioCoworking.Monitor | None":
